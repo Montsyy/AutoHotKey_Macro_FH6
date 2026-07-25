@@ -1,14 +1,18 @@
-# Custom Macro Builder (AutoHotkey v2) 'Forza Horizon 6'
+# Custom Macro Builder (AutoHotkey v2)
 
-A flexible, GUI based macro builder written in AutoHotkey v2. This tool allows users to easily record keystrokes, set custom delays, define hold durations, and execute the sequence in a controlled loop.
+A powerful, GUI based macro builder written in AutoHotkey v2. This tool allows users to easily record keystrokes in real time, set custom delays, manage macro presets, and execute sequences in a controlled loop.
+
+![Custom Macro Builder GUI](image_038af4.png)
 
 ## Features
 
-* **GUI Based Configuration:** Easy to use interface to build your macro step by step.
-* **Auto Key Recording:** Built in key catcher to record any keystroke (including modifier keys like Ctrl, Shift, Esc, Win, etc.).
-* **Custom Timings:** Define precise delay (wait time before press) and hold duration for every single key in seconds (e.g., 0.5 for half a second).
+* **Live Record Mode:** Record your physical keystrokes, delays, and hold durations in real time. Just press record, do your actions, and let the program calculate the precise timings for you.
+* **Preset System (Memory):** Save your macro configurations (steps, total loops, and start hotkey) into a profile and load them instantly anytime.
+* **Step Management:** Click on any step in the list to easily edit its key, delay, or duration, or delete specific steps without clearing the whole list.
+* **Custom Timings:** Manually define precise delay (wait time before press) and hold duration for every single key in seconds (e.g., 0.5 for half a second).
+* **Advanced Tracking & Countdown:** Real time tracking of total elapsed time, estimated time left (countdown), current loop time, loop count, and active step.
 * **Dynamic Hotkeys:** Change the Start/Stop hotkey directly from the UI without editing the code.
-* **Advanced Tracking:** Real time tracking of total elapsed time, current loop time, loop count, and active step.
+* **Safety Locks:** The UI prevents accidental edits or deletions while the macro is actively running to ensure stability.
 * **Safe Exit:** Closing the GUI completely terminates the script from the background to prevent unwanted macro execution.
 
 ## Prerequisites
@@ -20,20 +24,32 @@ A flexible, GUI based macro builder written in AutoHotkey v2. This tool allows u
 1. Download or clone this repository.
 2. Make sure you have AutoHotkey v2 installed.
 3. Double click the `.ahk` script file to run the program.
+4. A file named `macro_presets.ini` will be generated automatically in the same folder when you save your first preset.
 
-## How to Build a Macro
+## How to Use
 
-1. **Record a Key:** Click the **Record** button and press any key on your keyboard.
-2. **Set Timings:**
-   * **Delay (s):** Time to wait before pressing the key.
-   * **Duration (s):** How long to hold the key down.
-3. **Add Step:** Click **Add** to insert the step into your macro sequence. Repeat this to chain multiple keys.
-4. **Configure Execution:**
-   * Set the **Total Loops (Tick)** for how many times the entire sequence should run.
-   * Set your preferred **Start/Stop Hotkey** and click **Set Hotkey**.
-5. **Run:** Press your configured hotkey to start the macro. Press it again to stop it at any time.
+### Method 1: Live Recording (Recommended)
+1. Click the **▶ START LIVE RECORD** button.
+2. Perform your desired keystrokes and combos normally.
+3. Press **F12** on your keyboard (or click the button again) to stop recording. The sequence will be added to the list automatically.
+
+### Method 2: Manual Entry
+1. Click the **Detect** button and press any key on your keyboard.
+2. Set the **Delay (s)** and **Duration (s)**.
+3. Click **Add** to insert the step into your macro sequence.
+
+### Managing Steps
+* **Edit:** Click any row in the table, modify the values in the input boxes above, and click **Edit**.
+* **Delete:** Click any row in the table and click **Del** to remove it.
+
+### Saving and Loading Presets
+* **Save:** Type a name in the Preset box (e.g., "Farming Combo") and click **Save**.
+* **Load:** Click the dropdown arrow, select your saved preset, and click **Load**.
+
+### Executing the Macro
+1. Set the **Total Loops (Tick)** for how many times the entire sequence should run.
+2. Set your preferred **Start/Stop Hotkey** and click **Set Hotkey**.
+3. Press your configured hotkey to start the macro. Press it again to stop it at any time.
 
 ## Important Notes
-
-* If you close the program window (via the X button), the script will fully terminate and exit the system memory.
 * The macro is designed for flexibility and safety. If you forcefully stop the macro while it is running, it will automatically release all held keys to prevent them from getting stuck.
