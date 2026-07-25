@@ -2,7 +2,7 @@
 
 A powerful, GUI based macro builder written in AutoHotkey v2. This tool allows users to easily record keystrokes in real time, set custom delays, manage macro presets, and execute sequences in a controlled loop.
 
-![Custom Macro Builder GUI](Screenshot 2026-07-25 095331.png)
+<img width="733" height="514" alt="Image" src="https://github.com/user-attachments/assets/71bea29d-4243-44f6-a7b6-b85a2577c5d5" />
 
 ## Features
 
