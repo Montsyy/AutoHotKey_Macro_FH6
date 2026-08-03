@@ -12,14 +12,14 @@ Global MacroSteps := []
 Global CurrentStepIndex := 1
 Global CurrentStartHotkey := "p"
 
-; File penyimpanan preset
+; Deklarasi MainGui sebagai Global agar bisa diakses di dalam fungsi
+Global MainGui := Gui("+AlwaysOnTop", "Custom Macro Builder")
 Global IniFile := A_ScriptDir "\macro_presets.ini"
 
 Global ihRec := ""
 Global LastActionTime := 0
 Global ActiveKeys := Map()
 
-MainGui := Gui("+AlwaysOnTop", "Custom Macro Builder")
 MainGui.OnEvent("Close", GuiClose)
 
 ; Bagian Input Manual & Aksi Tabel
@@ -43,7 +43,8 @@ BtnEdit.OnEvent("Click", EditStep)
 BtnDel := MainGui.Add("Button", "x485 y9 w40", "Del")
 BtnDel.OnEvent("Click", DeleteStep)
 
-BtnClear := MainGui.Add("Button", "x530 y9 w45", "Clear")
+; TOMBOL CLEAR BERWARNA MERAH
+BtnClear := MainGui.Add("Text", "x530 y9 w45 h23 BackgroundE53935 cWhite Center 0x200 Border", "Clear")
 BtnClear.OnEvent("Click", ClearSteps)
 
 ; Bagian Perekam Langsung
@@ -51,14 +52,14 @@ Global BtnLiveRecord := MainGui.Add("Button", "x10 y45 w565 h35", "▶ START LIV
 BtnLiveRecord.OnEvent("Click", ToggleRecording)
 
 ; Bagian Tabel Daftar Eksekusi
-Global LV := MainGui.Add("ListView", "x10 y90 w565 h150", ["No", "Key", "Delay (s)", "Hold Duration (s)"])
+Global LV := MainGui.Add("ListView", "x10 y90 w565 h150 -Multi", ["No", "Key", "Delay (s)", "Hold Duration (s)"])
 LV.ModifyCol(1, 40)
 LV.ModifyCol(2, 130)
 LV.ModifyCol(3, 130)
 LV.ModifyCol(4, 150)
 LV.OnEvent("Click", LoadToEdit)
 
-; Pengaturan Loop dan Hotkey
+; Pengaturan Loop, Hotkey, dan Estimasi 1 Loop
 MainGui.Add("Text", "x10 y255 w110", "Total Loops (Tick):")
 TotalLoopEdit := MainGui.Add("Edit", "x125 y250 w50 Number", "10")
 
@@ -66,6 +67,8 @@ MainGui.Add("Text", "x190 y255 w110", "Start/Stop Hotkey:")
 HKInput := MainGui.Add("Hotkey", "x300 y250 w80", "p")
 BtnSetHK := MainGui.Add("Button", "x390 y249 w80", "Set Hotkey")
 BtnSetHK.OnEvent("Click", UpdateStartHotkey)
+
+Global OneLoopTimeText := MainGui.Add("Text", "x475 y255 w100 Right", "1 Loop: 00:00")
 
 ; Sistem Preset (Memori)
 MainGui.Add("Text", "x10 y290 w50", "Preset:")
@@ -92,6 +95,29 @@ GuiClose(*) {
 }
 
 ; ==========================================
+; FUNGSI KALKULASI TOTAL 1 LOOP FORMAT MM:SS
+; ==========================================
+UpdateLoopTimeDisplay() {
+    Global MacroSteps, OneLoopTimeText
+    totalMs := 0
+    for index, step in MacroSteps {
+        totalMs += step["Delay"] + step["Duration"]
+    }
+    
+    totalSecs := Floor(totalMs / 1000)
+    ms := Mod(totalMs, 1000)
+    m := Floor(totalSecs / 60)
+    s := Mod(totalSecs, 60)
+    
+    ; Jika ada sisa desimal milidetik, tampilkan presisinya
+    if (ms > 0) {
+        OneLoopTimeText.Value := Format("1 Loop: {:02}:{:02}.{:03}", m, s, ms)
+    } else {
+        OneLoopTimeText.Value := Format("1 Loop: {:02}:{:02}", m, s)
+    }
+}
+
+; ==========================================
 ; SISTEM MEMORI (PRESET)
 ; ==========================================
 GetPresetNames() {
@@ -111,14 +137,16 @@ RefreshPresetList() {
 }
 
 SavePreset(*) {
-    Global MacroSteps, IniFile
+    Global MacroSteps, IniFile, MainGui
     presetName := PresetCB.Text
     
     if (presetName == "") {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please enter a name for the preset.")
         return
     }
     if (MacroSteps.Length == 0) {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("No steps to save. Please add macro steps first.")
         return
     }
@@ -136,14 +164,17 @@ SavePreset(*) {
     
     RefreshPresetList()
     PresetCB.Text := presetName
+    
+    MainGui.Opt("+OwnDialogs")
     MsgBox("Preset '" presetName "' successfully saved!")
 }
 
 LoadPreset(*) {
-    Global MacroSteps, IniFile
+    Global MacroSteps, IniFile, MainGui
     presetName := PresetCB.Text
     
     if (presetName == "") {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please select a preset to load.")
         return
     }
@@ -153,11 +184,12 @@ LoadPreset(*) {
         loopsVal := IniRead(IniFile, presetName, "Loops", "10")
         hotkeyVal := IniRead(IniFile, presetName, "Hotkey", "p")
     } catch {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Preset '" presetName "' not found.")
         return
     }
     
-    ClearSteps()
+    ClearSteps_Silent()
     
     if (stepsStr != "") {
         stepArray := StrSplit(stepsStr, "||")
@@ -179,25 +211,28 @@ LoadPreset(*) {
     
     TotalLoopEdit.Value := loopsVal
     HKInput.Value := hotkeyVal
-    UpdateStartHotkey()
+    UpdateStartHotkey_Silent()
+    UpdateLoopTimeDisplay()
     
+    MainGui.Opt("+OwnDialogs")
     MsgBox("Preset '" presetName "' loaded successfully!")
 }
 
 DeletePreset(*) {
-    Global IniFile
+    Global IniFile, MainGui
     presetName := PresetCB.Text
     
     if (presetName == "") {
         return
     }
     
+    MainGui.Opt("+OwnDialogs")
     res := MsgBox("Are you sure you want to delete preset '" presetName "'?", "Confirm Deletion", "YesNo")
     if (res == "Yes") {
         try IniDelete(IniFile, presetName)
         RefreshPresetList()
         PresetCB.Text := ""
-        ClearSteps()
+        ClearSteps_Silent()
     }
 }
 
@@ -205,11 +240,21 @@ DeletePreset(*) {
 ; FUNGSI UTAMA LAINNYA
 ; ==========================================
 UpdateStartHotkey(*) {
-    Global CurrentStartHotkey
+    Global CurrentStartHotkey, MainGui
     newHK := HKInput.Value
     if (newHK == "") {
+        MainGui.Opt("+OwnDialogs")
+        MsgBox("Please enter a valid hotkey.")
         return
     }
+    UpdateStartHotkey_Silent()
+}
+
+UpdateStartHotkey_Silent() {
+    Global CurrentStartHotkey
+    newHK := HKInput.Value
+    if (newHK == "")
+        return
     try Hotkey(CurrentStartHotkey, "Off")
     CurrentStartHotkey := newHK
     Hotkey(CurrentStartHotkey, ToggleMacro, "On")
@@ -290,6 +335,7 @@ OnLiveKeyUp(ih, VK, SC) {
         
         ActiveKeys.Delete(keyName)
         LastActionTime := currentTime
+        UpdateLoopTimeDisplay()
     }
 }
 
@@ -306,6 +352,9 @@ CaptureSingleKey(*) {
 }
 
 LoadToEdit(Ctrl, RowNumber) {
+    Global IsRunning
+    if IsRunning
+        return
     if (RowNumber == 0)
         return
     KeyInput.Value := Ctrl.GetText(RowNumber, 2)
@@ -314,8 +363,9 @@ LoadToEdit(Ctrl, RowNumber) {
 }
 
 AddStep(*) {
-    Global IsRunning, MacroSteps
+    Global IsRunning, MacroSteps, MainGui
     if IsRunning {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please stop the macro before modifying steps.")
         return
     }
@@ -325,10 +375,12 @@ AddStep(*) {
     duration := DurationInput.Value
 
     if (key == "" || key == "..." || delay == "" || duration == "") {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please record a key and fill in all time fields.")
         return
     }
     if (!IsNumber(delay) || !IsNumber(duration)) {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Delay and Duration must be valid numbers.")
         return
     }
@@ -341,17 +393,20 @@ AddStep(*) {
     LV.Add("", stepNum, key, delay, duration)
     KeyInput.Value := ""
     LV.Modify(LV.GetCount(), "Vis")
+    UpdateLoopTimeDisplay()
 }
 
 EditStep(*) {
-    Global IsRunning, MacroSteps
+    Global IsRunning, MacroSteps, MainGui
     if IsRunning {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please stop the macro before modifying steps.")
         return
     }
 
     selectedRow := LV.GetNext(0)
     if (selectedRow == 0) {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please select a row in the table to edit.")
         return
     }
@@ -364,6 +419,7 @@ EditStep(*) {
         return
     }
     if (!IsNumber(delay) || !IsNumber(duration)) {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Delay and Duration must be valid numbers.")
         return
     }
@@ -374,17 +430,20 @@ EditStep(*) {
     MacroSteps[selectedRow] := Map("Key", key, "Delay", delayMs, "Duration", durationMs)
     LV.Modify(selectedRow, "", selectedRow, key, delay, duration)
     KeyInput.Value := ""
+    UpdateLoopTimeDisplay()
 }
 
 DeleteStep(*) {
-    Global IsRunning, MacroSteps
+    Global IsRunning, MacroSteps, MainGui
     if IsRunning {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please stop the macro before modifying steps.")
         return
     }
 
     selectedRow := LV.GetNext(0)
     if (selectedRow == 0) {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please select a row in the table to delete.")
         return
     }
@@ -395,17 +454,24 @@ DeleteStep(*) {
     loop LV.GetCount() {
         LV.Modify(A_Index, "", A_Index)
     }
+    UpdateLoopTimeDisplay()
 }
 
 ClearSteps(*) {
-    Global IsRunning, MacroSteps
+    Global IsRunning, MainGui
     if IsRunning {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please stop the macro before modifying steps.")
         return
     }
-    
+    ClearSteps_Silent()
+}
+
+ClearSteps_Silent() {
+    Global MacroSteps
     MacroSteps := []
     LV.Delete()
+    UpdateLoopTimeDisplay()
 }
 
 ToggleMacro(*) {
@@ -418,14 +484,16 @@ ToggleMacro(*) {
 }
 
 StartMacro() {
-    Global IsRunning, ElapsedSeconds, LoopElapsedSeconds, TotalEstimatedSeconds, CurrentLoop, TotalLoopsLimit, CurrentStepIndex, MacroSteps
+    Global IsRunning, ElapsedSeconds, LoopElapsedSeconds, TotalEstimatedSeconds, CurrentLoop, TotalLoopsLimit, CurrentStepIndex, MacroSteps, MainGui
 
     if (MacroSteps.Length == 0) {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Key list is empty. Please add at least one step first.")
         return
     }
     totalLoops := TotalLoopEdit.Value
     if (totalLoops == "") {
+        MainGui.Opt("+OwnDialogs")
         MsgBox("Please enter a valid number of loops.")
         return
     }
@@ -449,7 +517,7 @@ StartMacro() {
 }
 
 ExecuteNextStep() {
-    Global IsRunning, CurrentLoop, TotalLoopsLimit, CurrentStepIndex, MacroSteps, LoopElapsedSeconds
+    Global IsRunning, CurrentLoop, TotalLoopsLimit, CurrentStepIndex, MacroSteps, LoopElapsedSeconds, LV
 
     if (!IsRunning)
         return
@@ -465,6 +533,9 @@ ExecuteNextStep() {
             return
         }
     }
+
+    LV.Modify(0, "-Select -Focus")
+    LV.Modify(CurrentStepIndex, "Select Focus Vis")
 
     stepData := MacroSteps[CurrentStepIndex]
     StatusText.Value := "Status: Waiting Delay (" (stepData["Delay"] / 1000) " s) for key '" stepData["Key"] "'"
@@ -503,7 +574,7 @@ ReleaseKey(stepData) {
 }
 
 StopAndResetMacro(msg := "Status: Finished") {
-    Global IsRunning, ElapsedSeconds, LoopElapsedSeconds, TotalEstimatedSeconds, CurrentLoop, CurrentStepIndex, MacroSteps, CurrentStartHotkey
+    Global IsRunning, ElapsedSeconds, LoopElapsedSeconds, TotalEstimatedSeconds, CurrentLoop, CurrentStepIndex, MacroSteps, CurrentStartHotkey, LV
 
     IsRunning := false
     SetTimer(UpdateTimer, 0)
@@ -511,6 +582,8 @@ StopAndResetMacro(msg := "Status: Finished") {
     for index, step in MacroSteps {
         try Send("{" step["Key"] " up}")
     }
+    
+    LV.Modify(0, "-Select -Focus")
 
     if (msg == "Status: Finished") {
         msg := msg " (Press '" CurrentStartHotkey "' to Start)"
